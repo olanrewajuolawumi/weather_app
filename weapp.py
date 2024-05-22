@@ -3,6 +3,7 @@ import requests                              # Importing the requests library to
 import json                                        # Importing the json library to handle JSON data
 import streamlit as st                       # Importing Streamlit for building the web application
 from datetime import datetime, timedelta  # Importing datetime and timedelta for date/time operations
+import plotly
 import plotly.graph_objs as go                      # Importing Plotly for interactive plotting
 import pandas as pd                                 # Importing Pandas for data manipulation
 
