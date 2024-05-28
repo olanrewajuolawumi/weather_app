@@ -2,6 +2,7 @@ import requests                              # Importing the requests library to
 import json                                  # Importing the json library to handle JSON data
 import streamlit as st                       # Importing Streamlit for building the web application
 from datetime import datetime, timedelta     # Importing datetime and timedelta for date/time operations
+import pytz                                  # Importing pytz for time zone conversions
 import pandas as pd                          # Importing Pandas for data manipulation
 import plotly.express as px                  # Importing Plotly Express for interactive plotting
 
@@ -52,6 +53,7 @@ def build_historical_weather_url(lat, lon, start_date, end_date):
 def build_forecast_url(lat, lon):
     return f"forecast?lat={lat}&lon={lon}"
 
+# Function to retrieve current weather data for a specified city
 def get_current_weather(city, country):
     url = build_current_weather_url(city, country)
     data = make_api_call(url)
@@ -60,12 +62,23 @@ def get_current_weather(city, country):
         temperature_kelvin = data['main'].get('temp')
         humidity = data['main'].get('humidity')
         weather_description = data['weather'][0].get('description')
-        current_time = datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+        
+        # Get the current UTC time
+        current_utc_time = datetime.utcnow()
+
+        # Define your local time zone
+        local_timezone = pytz.timezone("Europe/London")  # Change to your local timezone
+
+        # Convert UTC time to local time
+        local_time = current_utc_time.replace(tzinfo=pytz.utc).astimezone(local_timezone)
+        current_time = local_time.strftime('%d/%m/%Y %H:%M:%S')
+
         temperature_celsius = round(temperature_kelvin - 273.15, 2) if temperature_kelvin is not None else None
         air_quality, pollutant = get_air_quality(data['coord']['lat'], data['coord']['lon'])
         return temperature_celsius, humidity, weather_description, current_time, air_quality, pollutant
     else:
         return None, None, None, None, None, None
+
 
 def get_air_quality(lat, lon):
     url = build_air_pollution_url(lat, lon)
