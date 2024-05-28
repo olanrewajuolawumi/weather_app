@@ -3,7 +3,7 @@ import json                                  # Importing the json library to han
 import streamlit as st                       # Importing Streamlit for building the web application
 from datetime import datetime, timedelta     # Importing datetime and timedelta for date/time operations
 import pandas as pd                          # Importing Pandas for data manipulation
-#import plotly.express as px                  # Importing Plotly Express for interactive plotting
+import plotly.express as px                  # Importing Plotly Express for interactive plotting
 
 # OpenWeatherMap API key for authentication
 API_KEY = "5072ad7f4035efb616cf1bf99c568ef0"
