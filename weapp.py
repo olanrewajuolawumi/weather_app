@@ -1,70 +1,57 @@
-# Import necessary libraries
 import requests                              # Importing the requests library to make HTTP requests
-import json                                        # Importing the json library to handle JSON data
+import json                                  # Importing the json library to handle JSON data
 import streamlit as st                       # Importing Streamlit for building the web application
-from datetime import datetime, timedelta  # Importing datetime and timedelta for date/time operations
-#import plotly
-#import plotly.graph_objs as go                      # Importing Plotly for interactive plotting
-import pandas as pd                                 # Importing Pandas for data manipulation
+from datetime import datetime, timedelta     # Importing datetime and timedelta for date/time operations
+import pandas as pd                          # Importing Pandas for data manipulation
+import plotly.express as px                  # Importing Plotly Express for interactive plotting
 
 # OpenWeatherMap API key for authentication
 API_KEY = "5072ad7f4035efb616cf1bf99c568ef0"
 
 # Function to make API calls to OpenWeatherMap API
 def make_api_call(endpoint, params=None):
-    # Constructing the API URL with the specified endpoint
     url = f"https://api.openweathermap.org/data/2.5/{endpoint}"
-    # Adding API key to the request parameters for authentication
     if params:
         params["appid"] = API_KEY
     else:
         params = {"appid": API_KEY}
     try:
-        # Making the GET request to the API endpoint
         response = requests.get(url, params=params)
         response.raise_for_status()  # Checking for HTTP errors
         return response.json()  # Parsing JSON response
-    except requests.exceptions.HTTPError as err:
+    except requests.exceptions.HTTPError:
         return None  # Returning None if HTTP error occurs
-    except json.JSONDecodeError as err:
+    except json.JSONDecodeError:
         return None  # Returning None if JSON decoding error occurs
 
 # Function to make API calls to historical OpenWeatherMap API
 def make_api_call_historical(endpoint, params=None):
-    # Constructing the historical API URL with the specified endpoint
     url = f"https://history.openweathermap.org/data/2.5/{endpoint}"
-    # Adding API key to the request parameters for authentication
     if params:
         params["appid"] = API_KEY
     else:
         params = {"appid": API_KEY}
     try:
-        # Making the GET request to the historical API endpoint
         response = requests.get(url, params=params)
         response.raise_for_status()  # Checking for HTTP errors
         return response.json()  # Parsing JSON response
-    except requests.exceptions.HTTPError as err:
+    except requests.exceptions.HTTPError:
         return None  # Returning None if HTTP error occurs
-    except json.JSONDecodeError as err:
+    except json.JSONDecodeError:
         return None  # Returning None if JSON decoding error occurs
 
-# Function to construct URL for fetching current weather data
 def build_current_weather_url(city, country):
     return f"weather?q={city},{country}"
 
-# Function to construct URL for fetching air pollution data
 def build_air_pollution_url(lat, lon):
     return f"air_pollution?lat={lat}&lon={lon}"
 
-# Function to construct URL for fetching historical weather data
 def build_historical_weather_url(lat, lon, start_date, end_date):
     return f"history/city?lat={lat}&lon={lon}&start={start_date}&end={end_date}"
 
-# Function to construct URL for fetching weather forecast data
 def build_forecast_url(lat, lon):
     return f"forecast?lat={lat}&lon={lon}"
 
-# Function to retrieve current weather data for a specified city
 def get_current_weather(city, country):
     url = build_current_weather_url(city, country)
     data = make_api_call(url)
@@ -80,7 +67,6 @@ def get_current_weather(city, country):
     else:
         return None, None, None, None, None, None
 
-# Function to retrieve air quality data for a specified location
 def get_air_quality(lat, lon):
     url = build_air_pollution_url(lat, lon)
     data = make_api_call(url)
@@ -92,12 +78,10 @@ def get_air_quality(lat, lon):
     else:
         return None, None
 
-# Function to retrieve historical weather data for a specified location and time range
 def get_historical_weather_data(lat, lon, start_date, end_date):
     endpoint = f"history/city?lat={lat}&lon={lon}&start={start_date}&end={end_date}"
     return make_api_call_historical(endpoint)
 
-# Function to retrieve weather forecast data for a specified location
 def get_forecast(lat, lon):
     url = build_forecast_url(lat, lon)
     data = make_api_call(url)
@@ -106,7 +90,6 @@ def get_forecast(lat, lon):
     else:
         return None
 
-# Function to display current weather data
 def display_weather(city, temperature_celsius, humidity, weather_description, air_quality, pollutant):
     st.write(f"Weather: {weather_description}")
     st.write(f"Temperature: {temperature_celsius}°C")
@@ -115,7 +98,6 @@ def display_weather(city, temperature_celsius, humidity, weather_description, ai
         st.write(f"Air Quality Index: {air_quality}")
         st.write(f"Main Pollutant: {pollutant}")
 
-# Function to display historical weather data
 def display_historical_weather(city, data):
     st.title(f"Historical weather for past few days in {city}:")
     if not data:
@@ -128,21 +110,20 @@ def display_historical_weather(city, data):
     temperature_kelvin = [entry['main']['temp'] for entry in data]
     humidity = [entry['main']['humidity'] for entry in data]
     temperature_celsius = [round(temp - 273.15, 2) for temp in temperature_kelvin]
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=time_of_day, y=temperature_celsius, mode='lines', name='Temperature (°C)'))
-    fig.add_trace(go.Scatter(x=time_of_day, y=humidity, mode='lines', name='Humidity (%)'))
-    fig.update_layout(title=f"Historical weather data for {city}", xaxis_title='Time', yaxis_title='Value')
-    st.plotly_chart(fig)
+    
     df = pd.DataFrame({
         'Time': time_of_day,
         'Temperature (°C)': temperature_celsius,
         'Humidity (%)': humidity,
         'Weather Description': weather_description
     })
+
+    fig = px.line(df, x='Time', y=['Temperature (°C)', 'Humidity (%)'], 
+                  title=f"Historical weather data for {city}")
+    st.plotly_chart(fig)
     st.write("Historical Weather Data")
     st.write(df)
 
-# Function to display weather forecast data
 def display_forecast(city, data):
     st.title(f"Weather forecast for the upcoming days in {city}:")
     time_of_day = [datetime.fromisoformat(entry['dt_txt']).strftime('%d/%m/%Y %H:%M:%S') for entry in data]
@@ -150,21 +131,20 @@ def display_forecast(city, data):
     temperature_kelvin = [entry['main']['temp'] for entry in data]
     humidity = [entry['main']['humidity'] for entry in data]
     temperature_celsius = [round(temp - 273.15, 2) for temp in temperature_kelvin]
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=time_of_day, y=temperature_celsius, mode='lines', name='Temperature (°C)'))
-    fig.add_trace(go.Scatter(x=time_of_day, y=humidity, mode='lines', name='Humidity (%)'))
-    fig.update_layout(title=f"Weather forecast for {city}", xaxis_title='Time', yaxis_title='Value')
-    st.plotly_chart(fig)
+
     df = pd.DataFrame({
         'Time': time_of_day,
         'Temperature (°C)': temperature_celsius,
         'Humidity (%)': humidity,
         'Weather Description': weather_description
     })
+
+    fig = px.line(df, x='Time', y=['Temperature (°C)', 'Humidity (%)'], 
+                  title=f"Weather forecast for {city}")
+    st.plotly_chart(fig)
     st.write("Forecast Data:")
     st.write(df)
 
-# Function to retrieve latitude and longitude coordinates for a specified city
 def get_city_coordinates(city, country):
     url = build_current_weather_url(city, country)
     data = make_api_call(url)
@@ -173,7 +153,6 @@ def get_city_coordinates(city, country):
     else:
         return None, None
 
-# Function to retrieve countries for a specified city
 def get_countries_for_city(city):
     if not city:
         return []
@@ -185,7 +164,6 @@ def get_countries_for_city(city):
     else:
         return []
 
-# Function to test current weather data retrieval
 def test_current_weather(city, country):
     if city and country:
         temperature_celsius, humidity, weather_description, current_time, air_quality, pollutant = get_current_weather(city, country)
@@ -196,7 +174,6 @@ def test_current_weather(city, country):
     else:
         print("City or country not provided, skipping test")
 
-# Function to test historical weather data retrieval
 def test_historical_weather(city, country, start_date, end_date):
     if city and country:
         coordinates = get_city_coordinates(city, country)
@@ -209,7 +186,6 @@ def test_historical_weather(city, country, start_date, end_date):
     else:
         print("City or country not provided, skipping test")
 
-# Function to test weather forecast data retrieval
 def test_forecast(city, country):
     if city and country:
         coordinates = get_city_coordinates(city, country)
@@ -220,7 +196,6 @@ def test_forecast(city, country):
     else:
         print("City or country not provided, skipping test")
 
-# Main function to run the Streamlit web application
 if __name__ == "__main__":
     st.header("Weather App For You")
     st.image("https://images.theconversation.com/files/442675/original/file-20220126-17-1i0g402.jpg?ixlib-rb-1.1.0&c")
@@ -273,11 +248,6 @@ if __name__ == "__main__":
             else:
                 st.error("Failed to retrieve coordinates for the selected city.")
 
-    # Testing current weather data retrieval
     test_current_weather(city, country)
-
-    # Testing historical weather data retrieval
     test_historical_weather(city, country, datetime.now() - timedelta(days=5), datetime.now())
-
-    # Testing weather forecast data retrieval
     test_forecast(city, country)
