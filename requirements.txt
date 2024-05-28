@@ -1,5 +1,0 @@
-requests
-json
-streamlit
-pandas
-plotly
